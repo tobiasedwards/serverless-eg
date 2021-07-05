@@ -54,7 +54,7 @@ jobs:
         run: |
           aws lambda create-function \
             --function-name ${{ env.AWS_LAMBDA_NAME }} \
-            --zip-file fileb://package-zip \
+            --zip-file fileb://package.zip \
             --handler serverless-eg.lambda_function.lambda_handler \
             --runtime python3.8 \
             --role ${{ secrets.AWS_IAM_LAMBDA_ROLE_ARN }}
