@@ -1,0 +1,61 @@
+name: CI
+
+# Controls when the workflow will run
+on:
+  release:
+    types: [ created ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-southeast-2
+  AWS_LAMBDA_NAME: serverless-eg
+
+jobs:
+  deploy:
+    name: Deploy
+  
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Build package.zip
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --target ./package -r requirements.txt
+          cd package
+          zip -r ../package.zip .
+          cd ..
+          zip -g -r package.zip serverless_eg
+          rm -rf package
+
+      # Runs a set of commands using the runners shell
+      - name: Print the contents of package.zip
+        run: unzip -l package.zip
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Create AWS Lambda Function
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.AWS_LAMBDA_NAME }} \
+            --zip-file fileb://package.zip
+
+      - name: Remove package.zip
+        run: rm package.zip
+        
