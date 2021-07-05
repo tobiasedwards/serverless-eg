@@ -8,6 +8,10 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+env:
+  AWS_REGION: ap-southeast-2
+  AWS_LAMBDA_NAME: serverless-eg
+
 jobs:
   deploy:
     name: Deploy
@@ -39,8 +43,22 @@ jobs:
       - name: Print the contents of package.zip
         run: unzip -l package.zip
         
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Create AWS Lambda Function
+        run: |
+          aws lambda create-function \
+            --function-name ${{ env.AWS_LAMBDA_NAME }} \
+            --zip-file fileb://package-zip \
+            --handler serverless-eg.lambda_function.lambda_handler \
+            --runtime python3.8 \
+            --role ${{ secrets.AWS_IAM_LAMBDA_ROLE_ARN }}
+
       - name: Remove package.zip
         run: rm package.zip
         
-      - name: Test Secrets
-        run: echo ${{ secrets.MY_DUMMY_SECRET }}
